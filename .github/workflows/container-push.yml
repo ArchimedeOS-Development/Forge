@@ -2,7 +2,7 @@ name: Build and Push Container
 
 on:
   push:
-    branches: [ main ]  # ou la branche de ton choix
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
