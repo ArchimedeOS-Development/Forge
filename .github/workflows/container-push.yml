@@ -33,6 +33,6 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v5
         with:
-          context: ./Forge/base-container
+          context: ./base-container
           push: true
           tags: ghcr.io/${{ steps.repo_owner.outputs.owner }}/archimedeos-base:latest
