@@ -1,0 +1,24 @@
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Fichiers de cache
+*.tmp
+*.cache
+*.log
+
+# Fichiers de développement
+.git
+.gitignore
+README.md
+*.md
+
+# Fichiers de build
+node_modules/
+*.pyc
+__pycache__/
+
+# Fichiers temporaires
+*.swp
+*.swo
+*~ 
