@@ -31,4 +31,4 @@ jobs:
         with:
           context: ./Forge/base-container
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/archimedeos-base:latest
+          tags: ghcr.io/${{ github.repository_owner.toLowerCase() }}/archimedeos-base:latest
