@@ -31,7 +31,3 @@ else
     echo "❌ Erreur lors de la construction de l'image"
     exit 1
 fi
-
-podman login docker.io
-podman tag archimedeos-base:latest docker.io/bouddha/archimedeos-base:latest
-podman push docker.io/bouddha/archimedeos-base:latest 
