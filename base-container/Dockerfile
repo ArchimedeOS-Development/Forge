@@ -1,10 +1,16 @@
-# Image Podman basique d'Arch Linux
-# Basée sur l'image officielle d'Arch Linux
 FROM archlinux:latest
 
-RUN echo 'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' > /etc/pacman.d/mirrorlist && \
-    echo 'Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist && \
-    echo 'Server = https://mirror.umd.edu/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist
+LABEL maintainer="Killian Prin-abeil <killian@archimedeos.org>"
+LABEL description="ArchimedeOS Base Container optimisée avec miroirs dynamiques"
+
+RUN pacman -Syu --noconfirm python-pip || pacman -Syu --noconfirm reflector
+
+RUN if command -v pip >/dev/null 2>&1; then \
+      pip install rate-mirrors && \
+      rate-mirrors --concurrency 40 --disable-comments --allow-root --save /etc/pacman.d/mirrorlist arch; \
+    else \
+      reflector --country France,Germany,Netherlands --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist; \
+    fi
 
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm \
@@ -33,7 +39,7 @@ USER archimede
 WORKDIR /home/archimede
 
 RUN echo 'echo "=== ArchimedeOS Base Container ==="' >> ~/.bashrc && \
-    echo 'echo "Container prêt pour le développement!"' >> ~/.bashrc
+    echo 'echo "Container prêt pour le développement !"' >> ~/.bashrc
 
 EXPOSE 22
 
