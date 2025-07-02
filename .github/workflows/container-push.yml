@@ -36,3 +36,17 @@ jobs:
           context: ./base-container
           push: true
           tags: ghcr.io/${{ steps.repo_owner.outputs.owner }}/archimedeos-base:latest
+
+      - name: Build and push BlueTeam image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./blueteam-container
+          push: true
+          tags: ghcr.io/${{ steps.repo_owner.outputs.owner }}/archimedeos-blueteam:latest
+
+      - name: Build and push RedTeam image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./redteam-container
+          push: true
+          tags: ghcr.io/${{ steps.repo_owner.outputs.owner }}/archimedeos-redteam:latest
