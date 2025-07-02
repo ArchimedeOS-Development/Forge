@@ -11,31 +11,8 @@ RUN useradd -m -s /bin/bash archytas && \
     echo "archytas ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 RUN pacman -Syu --noconfirm && \
-    pacman -S --noconfirm \
-    wireshark-qt \
-    tcpdump \
-    nmap \
-    tshark \
-    iftop \
-    iptraf-ng \
-    exiftool \
-    binwalk \
-    sleuthkit \
-    foremost \
-    testdisk \
-    chkrootkit \
-    rkhunter \
-    clamav \
-    yara \
-    lynis \
-    audit \
-    hashdeep \
-    gpg \
-    logrotate \
-    rsyslog \
-    volatility3 \
-    logwatch \
-    && pacman -Scc --noconfirm
+    pacman -S --noconfirm blackarch-forensic && \
+    pacman -Scc --noconfirm
 
 USER archytas
 WORKDIR /home/archytas
