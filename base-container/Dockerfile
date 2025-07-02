@@ -3,14 +3,10 @@ FROM archlinux:latest
 LABEL maintainer="Killian Prin-abeil <killian@archimedeos.org>"
 LABEL description="ArchimedeOS Base Container optimisée avec miroirs dynamiques"
 
-RUN pacman -Syu --noconfirm python-pip || pacman -Syu --noconfirm reflector
+RUN pacman -Syu --noconfirm reflector
 
-RUN if command -v pip >/dev/null 2>&1; then \
-      pip install rate-mirrors && \
-      rate-mirrors --concurrency 40 --disable-comments --allow-root --save /etc/pacman.d/mirrorlist arch; \
-    else \
-      reflector --country France,Germany,Netherlands --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist; \
-    fi
+RUN reflector --country France,Germany,Netherlands --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+
 
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm \
