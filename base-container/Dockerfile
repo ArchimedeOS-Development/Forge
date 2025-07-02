@@ -2,12 +2,10 @@
 # Basée sur l'image officielle d'Arch Linux
 FROM archlinux:latest
 
-# Configuration des miroirs plus fiables
 RUN echo 'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' > /etc/pacman.d/mirrorlist && \
     echo 'Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist && \
     echo 'Server = https://mirror.umd.edu/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist
 
-# Mise à jour du système et installation des paquets de base avec retry
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm \
     base \
@@ -18,6 +16,12 @@ RUN pacman -Syu --noconfirm && \
     wget \
     sudo \
     && pacman -Scc --noconfirm
+
+RUN curl -O https://blackarch.org/strap.sh && \
+    chmod +x strap.sh && \
+    ./strap.sh && \
+    rm strap.sh && \
+    pacman -Syyu --noconfirm
 
 RUN useradd -m -s /bin/bash archimede && \
     echo "archimede ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
