@@ -1,12 +1,10 @@
 FROM archlinux:latest
 
 LABEL maintainer="Killian Prin-abeil <killian@archimedeos.org>"
-LABEL description="ArchimedeOS Base Container optimisée avec miroirs dynamiques"
 
-RUN pacman -Syu --noconfirm reflector
-
-RUN reflector --country France,Germany,Netherlands --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
-
+RUN echo 'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' > /etc/pacman.d/mirrorlist && \
+    echo 'Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist && \
+    echo 'Server = https://mirror.umd.edu/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist
 
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm \
@@ -35,7 +33,7 @@ USER archimede
 WORKDIR /home/archimede
 
 RUN echo 'echo "=== ArchimedeOS Base Container ==="' >> ~/.bashrc && \
-    echo 'echo "Container prêt pour le développement !"' >> ~/.bashrc
+    echo 'echo "Container prêt pour le développement!"' >> ~/.bashrc
 
 EXPOSE 22
 
