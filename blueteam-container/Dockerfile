@@ -12,12 +12,17 @@ RUN useradd -m -s /bin/bash archytas && \
 
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm \
+    wireshark-qt \
+    tcpdump \
+    nmap \
+    tshark \
+    iftop \
+    iptraf-ng \
+    exiftool \
+    binwalk \
     sleuthkit \
     foremost \
     testdisk \
-    binwalk \
-    exiftool \
-    volatility \
     chkrootkit \
     rkhunter \
     clamav \
@@ -26,14 +31,10 @@ RUN pacman -Syu --noconfirm && \
     audit \
     hashdeep \
     gpg \
-    wireshark-qt \
-    tcpdump \
-    tshark \
-    iftop \
-    iptraf-ng \
-    logwatch \
     logrotate \
     rsyslog \
+    volatility3 \
+    logwatch \
     && pacman -Scc --noconfirm
 
 USER archytas
