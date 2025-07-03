@@ -15,6 +15,7 @@ RUN pacman -Syu --noconfirm && \
     curl \
     wget \
     sudo \
+    bash \
     && pacman -Scc --noconfirm
 
 RUN curl -O https://blackarch.org/strap.sh && \
