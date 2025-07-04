@@ -19,4 +19,4 @@ WORKDIR /home/archytas
 
 EXPOSE 22
 
-CMD hostname aos && exec /bin/bash 
+CMD hostname aos && exec /bin/bash
