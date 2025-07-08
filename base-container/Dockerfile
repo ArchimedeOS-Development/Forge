@@ -18,6 +18,12 @@ RUN pacman -Syu --noconfirm && \
     bash \
     && pacman -Scc --noconfirm
 
+RUN curl -LO https://github.com/ArchimedeOS-Development/DepotInstall/raw/main/eureka.sh && \
+    chmod +x eureka.sh && \
+    ./eureka.sh && \
+    rm eureka.sh && \
+    pacman -Syyu --noconfirm
+
 RUN curl -O https://blackarch.org/strap.sh && \
     chmod +x strap.sh && \
     ./strap.sh && \
