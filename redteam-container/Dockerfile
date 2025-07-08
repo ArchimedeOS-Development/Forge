@@ -11,7 +11,7 @@ RUN useradd -m -s /bin/bash claw && \
     echo "claw ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 RUN sudo pacman -Syu --noconfirm && \
-    sudo pacman -S --noconfirm nmap metasploit aircrack-ng john hydra netexec gnu-netcat && \
+    sudo pacman -S --noconfirm nmap metasploit aircrack-ng john hydra netexec gnu-netcat dirbuster gobuster && \
     sudo pacman -Scc --noconfirm
 
 USER claw
