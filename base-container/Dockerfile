@@ -40,7 +40,7 @@ USER archimede
 WORKDIR /home/archimede
 
 RUN echo 'echo "=== ArchimedeOS Base Container ==="' >> ~/.bashrc && \
-    echo 'echo "Container prêt pour le développement"' >> ~/.bashrc
+    echo 'echo "Container prêt pour le développement!"' >> ~/.bashrc
 
 EXPOSE 22
 
