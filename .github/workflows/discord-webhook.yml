@@ -1,0 +1,554 @@
+name: Discord Notifier Pro
+on:
+  push:
+    branches: [ main, develop ]
+  create:
+  fork:
+  delete:
+  pull_request:
+    types: [opened, closed, reopened]
+  issues:
+    types: [opened, closed]
+  release:
+    types: [published]
+
+jobs:
+  discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Notify Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          EVENT_NAME="${{ github.event_name }}"
+          ACTOR="${{ github.actor }}"
+          REPO="${{ github.repository }}"
+          REPO_NAME="${{ github.event.repository.name }}"
+          REF="${{ github.ref }}"
+          API_URL="${{ github.event.repository.html_url }}"
+          AVATAR_URL="${{ github.event.sender.avatar_url }}"
+          
+          # Fonction pour nettoyer le nom de branche
+          clean_ref() {
+            echo "$1" | sed 's/refs\/heads\///' | sed 's/refs\/tags\///'
+          }
+          
+          # Fonction pour tronquer le texte
+          truncate_text() {
+            local text="$1"
+            local max_length="$2"
+            if [ ${#text} -gt $max_length ]; then
+              echo "${text:0:$max_length}..."
+            else
+              echo "$text"
+            fi
+          }
+          
+          # Couleurs pour les embeds
+          COLOR_PUSH="3066993"    # Vert
+          COLOR_CREATE="15844367" # Doré
+          COLOR_DELETE="15158332" # Rouge
+          COLOR_FORK="9936031"    # Violet
+          COLOR_PR_OPEN="3447003" # Bleu
+          COLOR_PR_CLOSE="10181046" # Gris
+          COLOR_ISSUE="15105570"  # Orange
+          COLOR_RELEASE="65280"   # Vert clair
+          
+          case $EVENT_NAME in
+            push)
+              BRANCH=$(clean_ref "$REF")
+              COMMIT_MESSAGE=$(truncate_text "${{ github.event.head_commit.message }}" 100)
+              COMMIT_URL="${{ github.event.head_commit.url }}"
+              COMMIT_SHA="${{ github.event.head_commit.id }}"
+              SHORT_SHA="${COMMIT_SHA:0:7}"
+              
+              # Compter les commits
+              COMMITS_COUNT="${{ github.event.commits }}"
+              COMMITS_ARRAY='${{ toJson(github.event.commits) }}'
+              COMMITS_COUNT=$(echo "$COMMITS_ARRAY" | jq '. | length')
+              
+              if [ "$COMMITS_COUNT" -gt 1 ]; then
+                COMMITS_TEXT="$COMMITS_COUNT commits"
+              else
+                COMMITS_TEXT="1 commit"
+              fi
+              
+              PAYLOAD=$(jq -nc \
+                --arg username "GitHub Actions" \
+                --arg avatar_url "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" \
+                --arg title "📦 Push sur $BRANCH" \
+                --arg description "**$COMMITS_TEXT** pushé(s) par **$ACTOR**" \
+                --arg color "$COLOR_PUSH" \
+                --arg repo_name "$REPO_NAME" \
+                --arg repo_url "$API_URL" \
+                --arg commit_msg "$COMMIT_MESSAGE" \
+                --arg commit_url "$COMMIT_URL" \
+                --arg short_sha "$SHORT_SHA" \
+                --arg actor "$ACTOR" \
+                --arg actor_avatar "$AVATAR_URL" \
+                --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+                '{
+                  username: $username,
+                  avatar_url: $avatar_url,
+                  embeds: [{
+                    title: $title,
+                    description: $description,
+                    color: ($color | tonumber),
+                    fields: [
+                      {
+                        name: "📝 Message",
+                        value: $commit_msg,
+                        inline: false
+                      },
+                      {
+                        name: "🔗 Commit",
+                        value: "[\($short_sha)](\($commit_url))",
+                        inline: true
+                      },
+                      {
+                        name: "📂 Repository",
+                        value: "[\($repo_name)](\($repo_url))",
+                        inline: true
+                      }
+                    ],
+                    author: {
+                      name: $actor,
+                      icon_url: $actor_avatar
+                    },
+                    timestamp: $timestamp,
+                    footer: {
+                      text: "GitHub Actions",
+                      icon_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                    }
+                  }]
+                }')
+              ;;
+              
+            create)
+              BRANCH=$(clean_ref "$REF")
+              REF_TYPE="${{ github.event.ref_type }}"
+              
+              if [ "$REF_TYPE" = "branch" ]; then
+                ICON="🌿"
+                TYPE_TEXT="branche"
+              else
+                ICON="🏷️"
+                TYPE_TEXT="tag"
+              fi
+              
+              PAYLOAD=$(jq -nc \
+                --arg username "GitHub Actions" \
+                --arg avatar_url "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" \
+                --arg title "$ICON Nouvelle $TYPE_TEXT créée" \
+                --arg description "**$ACTOR** a créé la $TYPE_TEXT **$BRANCH**" \
+                --arg color "$COLOR_CREATE" \
+                --arg repo_name "$REPO_NAME" \
+                --arg repo_url "$API_URL" \
+                --arg actor "$ACTOR" \
+                --arg actor_avatar "$AVATAR_URL" \
+                --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+                '{
+                  username: $username,
+                  avatar_url: $avatar_url,
+                  embeds: [{
+                    title: $title,
+                    description: $description,
+                    color: ($color | tonumber),
+                    fields: [
+                      {
+                        name: "📂 Repository",
+                        value: "[\($repo_name)](\($repo_url))",
+                        inline: true
+                      }
+                    ],
+                    author: {
+                      name: $actor,
+                      icon_url: $actor_avatar
+                    },
+                    timestamp: $timestamp,
+                    footer: {
+                      text: "GitHub Actions",
+                      icon_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                    }
+                  }]
+                }')
+              ;;
+              
+            delete)
+              BRANCH=$(clean_ref "$REF")
+              REF_TYPE="${{ github.event.ref_type }}"
+              
+              if [ "$REF_TYPE" = "branch" ]; then
+                ICON="🗑️"
+                TYPE_TEXT="branche"
+              else
+                ICON="🗑️"
+                TYPE_TEXT="tag"
+              fi
+              
+              PAYLOAD=$(jq -nc \
+                --arg username "GitHub Actions" \
+                --arg avatar_url "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" \
+                --arg title "$ICON $TYPE_TEXT supprimée" \
+                --arg description "**$ACTOR** a supprimé la $TYPE_TEXT **$BRANCH**" \
+                --arg color "$COLOR_DELETE" \
+                --arg repo_name "$REPO_NAME" \
+                --arg repo_url "$API_URL" \
+                --arg actor "$ACTOR" \
+                --arg actor_avatar "$AVATAR_URL" \
+                --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+                '{
+                  username: $username,
+                  avatar_url: $avatar_url,
+                  embeds: [{
+                    title: $title,
+                    description: $description,
+                    color: ($color | tonumber),
+                    fields: [
+                      {
+                        name: "📂 Repository",
+                        value: "[\($repo_name)](\($repo_url))",
+                        inline: true
+                      }
+                    ],
+                    author: {
+                      name: $actor,
+                      icon_url: $actor_avatar
+                    },
+                    timestamp: $timestamp,
+                    footer: {
+                      text: "GitHub Actions",
+                      icon_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                    }
+                  }]
+                }')
+              ;;
+              
+            fork)
+              FORK_URL="${{ github.event.forkee.html_url }}"
+              FORK_NAME="${{ github.event.forkee.full_name }}"
+              
+              PAYLOAD=$(jq -nc \
+                --arg username "GitHub Actions" \
+                --arg avatar_url "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" \
+                --arg title "🍴 Repository forké" \
+                --arg description "**$ACTOR** a forké le repository" \
+                --arg color "$COLOR_FORK" \
+                --arg repo_name "$REPO_NAME" \
+                --arg repo_url "$API_URL" \
+                --arg fork_name "$FORK_NAME" \
+                --arg fork_url "$FORK_URL" \
+                --arg actor "$ACTOR" \
+                --arg actor_avatar "$AVATAR_URL" \
+                --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+                '{
+                  username: $username,
+                  avatar_url: $avatar_url,
+                  embeds: [{
+                    title: $title,
+                    description: $description,
+                    color: ($color | tonumber),
+                    fields: [
+                      {
+                        name: "📂 Repository original",
+                        value: "[\($repo_name)](\($repo_url))",
+                        inline: true
+                      },
+                      {
+                        name: "🍴 Nouveau fork",
+                        value: "[\($fork_name)](\($fork_url))",
+                        inline: true
+                      }
+                    ],
+                    author: {
+                      name: $actor,
+                      icon_url: $actor_avatar
+                    },
+                    timestamp: $timestamp,
+                    footer: {
+                      text: "GitHub Actions",
+                      icon_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                    }
+                  }]
+                }')
+              ;;
+              
+            pull_request)
+              PR_TITLE=$(truncate_text "${{ github.event.pull_request.title }}" 100)
+              PR_URL="${{ github.event.pull_request.html_url }}"
+              PR_STATE="${{ github.event.action }}"
+              PR_NUMBER="${{ github.event.pull_request.number }}"
+              PR_BASE="${{ github.event.pull_request.base.ref }}"
+              PR_HEAD="${{ github.event.pull_request.head.ref }}"
+              
+              case $PR_STATE in
+                opened)
+                  ICON="📝"
+                  STATE_TEXT="ouverte"
+                  COLOR="$COLOR_PR_OPEN"
+                  ;;
+                closed)
+                  if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+                    ICON="🎉"
+                    STATE_TEXT="mergée"
+                    COLOR="$COLOR_PUSH"
+                  else
+                    ICON="❌"
+                    STATE_TEXT="fermée"
+                    COLOR="$COLOR_PR_CLOSE"
+                  fi
+                  ;;
+                reopened)
+                  ICON="🔄"
+                  STATE_TEXT="réouverte"
+                  COLOR="$COLOR_PR_OPEN"
+                  ;;
+                *)
+                  ICON="📄"
+                  STATE_TEXT="$PR_STATE"
+                  COLOR="$COLOR_PR_OPEN"
+                  ;;
+              esac
+              
+              PAYLOAD=$(jq -nc \
+                --arg username "GitHub Actions" \
+                --arg avatar_url "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" \
+                --arg title "$ICON Pull Request $STATE_TEXT" \
+                --arg description "**$ACTOR** a $STATE_TEXT la PR #$PR_NUMBER" \
+                --arg color "$COLOR" \
+                --arg repo_name "$REPO_NAME" \
+                --arg repo_url "$API_URL" \
+                --arg pr_title "$PR_TITLE" \
+                --arg pr_url "$PR_URL" \
+                --arg pr_number "$PR_NUMBER" \
+                --arg pr_base "$PR_BASE" \
+                --arg pr_head "$PR_HEAD" \
+                --arg actor "$ACTOR" \
+                --arg actor_avatar "$AVATAR_URL" \
+                --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+                '{
+                  username: $username,
+                  avatar_url: $avatar_url,
+                  embeds: [{
+                    title: $title,
+                    description: $description,
+                    color: ($color | tonumber),
+                    fields: [
+                      {
+                        name: "📝 Titre",
+                        value: $pr_title,
+                        inline: false
+                      },
+                      {
+                        name: "🔗 Pull Request",
+                        value: "[#\($pr_number)](\($pr_url))",
+                        inline: true
+                      },
+                      {
+                        name: "📂 Repository",
+                        value: "[\($repo_name)](\($repo_url))",
+                        inline: true
+                      },
+                      {
+                        name: "🌿 Branches",
+                        value: "\($pr_head) → \($pr_base)",
+                        inline: true
+                      }
+                    ],
+                    author: {
+                      name: $actor,
+                      icon_url: $actor_avatar
+                    },
+                    timestamp: $timestamp,
+                    footer: {
+                      text: "GitHub Actions",
+                      icon_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                    }
+                  }]
+                }')
+              ;;
+              
+            issues)
+              ISSUE_TITLE=$(truncate_text "${{ github.event.issue.title }}" 100)
+              ISSUE_URL="${{ github.event.issue.html_url }}"
+              ISSUE_STATE="${{ github.event.action }}"
+              ISSUE_NUMBER="${{ github.event.issue.number }}"
+              
+              case $ISSUE_STATE in
+                opened)
+                  ICON="🐛"
+                  STATE_TEXT="ouverte"
+                  ;;
+                closed)
+                  ICON="✅"
+                  STATE_TEXT="fermée"
+                  ;;
+                *)
+                  ICON="📋"
+                  STATE_TEXT="$ISSUE_STATE"
+                  ;;
+              esac
+              
+              PAYLOAD=$(jq -nc \
+                --arg username "GitHub Actions" \
+                --arg avatar_url "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" \
+                --arg title "$ICON Issue $STATE_TEXT" \
+                --arg description "**$ACTOR** a $STATE_TEXT l'issue #$ISSUE_NUMBER" \
+                --arg color "$COLOR_ISSUE" \
+                --arg repo_name "$REPO_NAME" \
+                --arg repo_url "$API_URL" \
+                --arg issue_title "$ISSUE_TITLE" \
+                --arg issue_url "$ISSUE_URL" \
+                --arg issue_number "$ISSUE_NUMBER" \
+                --arg actor "$ACTOR" \
+                --arg actor_avatar "$AVATAR_URL" \
+                --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+                '{
+                  username: $username,
+                  avatar_url: $avatar_url,
+                  embeds: [{
+                    title: $title,
+                    description: $description,
+                    color: ($color | tonumber),
+                    fields: [
+                      {
+                        name: "📝 Titre",
+                        value: $issue_title,
+                        inline: false
+                      },
+                      {
+                        name: "🔗 Issue",
+                        value: "[#\($issue_number)](\($issue_url))",
+                        inline: true
+                      },
+                      {
+                        name: "📂 Repository",
+                        value: "[\($repo_name)](\($repo_url))",
+                        inline: true
+                      }
+                    ],
+                    author: {
+                      name: $actor,
+                      icon_url: $actor_avatar
+                    },
+                    timestamp: $timestamp,
+                    footer: {
+                      text: "GitHub Actions",
+                      icon_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                    }
+                  }]
+                }')
+              ;;
+              
+            release)
+              RELEASE_NAME="${{ github.event.release.name }}"
+              RELEASE_TAG="${{ github.event.release.tag_name }}"
+              RELEASE_URL="${{ github.event.release.html_url }}"
+              RELEASE_BODY=$(truncate_text "${{ github.event.release.body }}" 200)
+              
+              PAYLOAD=$(jq -nc \
+                --arg username "GitHub Actions" \
+                --arg avatar_url "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" \
+                --arg title "🚀 Nouvelle release publiée" \
+                --arg description "**$ACTOR** a publié la release **$RELEASE_TAG**" \
+                --arg color "$COLOR_RELEASE" \
+                --arg repo_name "$REPO_NAME" \
+                --arg repo_url "$API_URL" \
+                --arg release_name "$RELEASE_NAME" \
+                --arg release_url "$RELEASE_URL" \
+                --arg release_tag "$RELEASE_TAG" \
+                --arg release_body "$RELEASE_BODY" \
+                --arg actor "$ACTOR" \
+                --arg actor_avatar "$AVATAR_URL" \
+                --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+                '{
+                  username: $username,
+                  avatar_url: $avatar_url,
+                  embeds: [{
+                    title: $title,
+                    description: $description,
+                    color: ($color | tonumber),
+                    fields: [
+                      {
+                        name: "📝 Notes de version",
+                        value: ($release_body | if length > 0 then . else "Aucune note de version" end),
+                        inline: false
+                      },
+                      {
+                        name: "🔗 Release",
+                        value: "[\($release_tag)](\($release_url))",
+                        inline: true
+                      },
+                      {
+                        name: "📂 Repository",
+                        value: "[\($repo_name)](\($repo_url))",
+                        inline: true
+                      }
+                    ],
+                    author: {
+                      name: $actor,
+                      icon_url: $actor_avatar
+                    },
+                    timestamp: $timestamp,
+                    footer: {
+                      text: "GitHub Actions",
+                      icon_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                    }
+                  }]
+                }')
+              ;;
+              
+            *)
+              PAYLOAD=$(jq -nc \
+                --arg username "GitHub Actions" \
+                --arg avatar_url "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" \
+                --arg title "🔔 Événement GitHub" \
+                --arg description "Événement **$EVENT_NAME** déclenché par **$ACTOR**" \
+                --arg color "3447003" \
+                --arg repo_name "$REPO_NAME" \
+                --arg repo_url "$API_URL" \
+                --arg actor "$ACTOR" \
+                --arg actor_avatar "$AVATAR_URL" \
+                --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+                '{
+                  username: $username,
+                  avatar_url: $avatar_url,
+                  embeds: [{
+                    title: $title,
+                    description: $description,
+                    color: ($color | tonumber),
+                    fields: [
+                      {
+                        name: "📂 Repository",
+                        value: "[\($repo_name)](\($repo_url))",
+                        inline: true
+                      }
+                    ],
+                    author: {
+                      name: $actor,
+                      icon_url: $actor_avatar
+                    },
+                    timestamp: $timestamp,
+                    footer: {
+                      text: "GitHub Actions",
+                      icon_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                    }
+                  }]
+                }')
+              ;;
+          esac
+          
+          # Envoyer le webhook
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "$PAYLOAD" \
+               "$DISCORD_WEBHOOK"
+          
+          # Afficher le payload pour debug (optionnel)
+          echo "Payload envoyé :"
+          echo "$PAYLOAD" | jq .
